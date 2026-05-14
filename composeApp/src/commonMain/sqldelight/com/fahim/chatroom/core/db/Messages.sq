@@ -1,0 +1,34 @@
+CREATE TABLE MessageEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    room_id TEXT NOT NULL,
+    sender_id TEXT,
+    content TEXT NOT NULL,                     -- TODO(e2ee): store ciphertext (BLOB) once CryptoBox is non-Noop
+    created_at TEXT NOT NULL,
+    edited_at TEXT,
+    deleted_at TEXT,
+    status TEXT NOT NULL                       -- MessageStatus name: Sending | Sent | Failed
+);
+
+CREATE INDEX messages_room_created_idx ON MessageEntity(room_id, created_at);
+
+selectForRoom:
+SELECT * FROM MessageEntity WHERE room_id = ? ORDER BY created_at ASC;
+
+upsert:
+INSERT OR REPLACE INTO MessageEntity(id, room_id, sender_id, content, created_at, edited_at, deleted_at, status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updateStatus:
+UPDATE MessageEntity SET status = ? WHERE id = ?;
+
+deleteById:
+DELETE FROM MessageEntity WHERE id = ?;
+
+deleteForRoom:
+DELETE FROM MessageEntity WHERE room_id = ?;
+
+deleteAll:
+DELETE FROM MessageEntity;
+
+markSendingAsFailed:
+UPDATE MessageEntity SET status = 'Failed' WHERE status = 'Sending';

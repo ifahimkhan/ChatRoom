@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -29,6 +31,10 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.activity.compose)
+            implementation(libs.ktor.client.android)
+            implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.koin.android)
+            implementation(libs.sqldelight.driver.android)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -39,6 +45,25 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.koin.core)
+            implementation(libs.koin.core.viewmodel)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+
+            implementation(libs.supabase.auth)
+            implementation(libs.supabase.postgrest)
+            implementation(libs.supabase.realtime)
+
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.driver.native)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -70,10 +95,23 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
+    }
+}
+
+compose.resources {
+    packageOfResClass = "com.fahim.chatroom"
+}
+
+sqldelight {
+    databases {
+        create("ChatDatabase") {
+            packageName.set("com.fahim.chatroom.core.db")
+        }
     }
 }
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
-

@@ -6,4 +6,18 @@ plugins {
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
+    alias(libs.plugins.kotlinSerialization) apply false
+    alias(libs.plugins.sqldelight) apply false
+}
+
+// Force all io.ktor artifacts to 3.2.2 so supabase-kt's transitive 3.2.0 pull is overridden.
+subprojects {
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "io.ktor") {
+                useVersion(libs.versions.ktor.get())
+                because("Align ktor with the declared catalog version")
+            }
+        }
+    }
 }
