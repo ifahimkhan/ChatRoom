@@ -7,6 +7,7 @@ import com.fahim.chatroom.core.dispatchers.DispatcherProvider
 import com.fahim.chatroom.core.error.AppError
 import com.fahim.chatroom.core.error.AppResult
 import com.fahim.chatroom.core.error.appResultOf
+import com.fahim.chatroom.core.logging.AppLogger
 import com.fahim.chatroom.data.chat.dto.MessageDto
 import com.fahim.chatroom.data.chat.dto.NewMessageDto
 import com.fahim.chatroom.data.chat.mapper.toDomain
@@ -17,17 +18,19 @@ import com.fahim.chatroom.domain.chat.repository.MessagesRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.decodeRecord
 import io.github.jan.supabase.realtime.postgresChangeFlow
-import kotlin.time.Clock
-import kotlin.time.Instant
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -42,8 +45,14 @@ class SupabaseMessagesRepository(
     private val client: SupabaseClient,
     private val authRepo: AuthRepository,
     private val db: ChatDatabase,
+    private val logger: AppLogger,
     dispatchers: DispatcherProvider,
 ) : MessagesRepository {
+
+    private companion object {
+        const val PAGE_SIZE = 50
+        const val TAG = "ChatRepo"
+    }
 
     private val io = dispatchers.io
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.default)
@@ -69,21 +78,34 @@ class SupabaseMessagesRepository(
             db.messagesQueries.selectForRoom(roomId)
                 .asFlow()
                 .mapToList(io)
-                .map { rows -> rows.map { it.toDomain() } }
+                .map { rows ->
+                    logger.d(TAG, "DB flow emit: ${rows.size} rows for room=$roomId")
+                    rows.mapNotNull { entity ->
+                        runCatching { entity.toDomain() }
+                            .onFailure { logger.e(TAG, "toDomain fail id=${entity.id}: ${it.message}") }
+                            .getOrNull()
+                    }
+                }
                 .stateIn(scope, SharingStarted.Eagerly, emptyList())
         }
 
     override suspend fun loadInitial(roomId: String): AppResult<Unit> = withContext(io) {
-        appResultOf {
+        logger.d(TAG, "loadInitial start roomId=$roomId")
+        val result = appResultOf {
             val dtos = client.from("messages").select {
                 filter { eq("room_id", roomId) }
                 order(column = "created_at", order = Order.DESCENDING)
                 limit(PAGE_SIZE.toLong())
             }.decodeList<MessageDto>()
+            logger.d(TAG, "loadInitial fetched ${dtos.size} messages")
             db.transaction {
                 dtos.forEach { upsertSent(it) }
             }
+            val total = db.messagesQueries.selectForRoom(roomId).executeAsList().size
+            logger.d(TAG, "loadInitial DB now has $total messages for room")
         }
+        if (result is AppResult.Failure) logger.e(TAG, "loadInitial failed: ${result.error.message}", result.error)
+        result
     }
 
     override suspend fun loadOlder(
@@ -136,21 +158,34 @@ class SupabaseMessagesRepository(
     }
 
     override suspend fun streamRoom(roomId: String) {
+        logger.i(TAG, "streamRoom start roomId=$roomId")
         val channel = client.channel("room:$roomId") {
             isPrivate = true
         }
-        // No server-side row filter: realtime authorization + messages SELECT RLS already gate
-        // what reaches this client. We filter client-side by room_id below for safety.
         val flow = channel.postgresChangeFlow<PostgresAction>(schema = "public") {
             table = "messages"
+            filter("room_id", FilterOperator.EQ, roomId)
         }
         try {
-            channel.subscribe()
-            flow.collect { handleRealtime(roomId, it) }
+            coroutineScope {
+                val job = launch {
+                    flow.collect {
+                        logger.d(TAG, "realtime event: ${it::class.simpleName} on room=$roomId")
+                        handleRealtime(roomId, it)
+                    }
+                }
+                channel.subscribe(blockUntilSubscribed = true)
+                logger.i(TAG, "streamRoom subscribed roomId=$roomId")
+                job.join()
+            }
+        } catch (t: Throwable) {
+            logger.e(TAG, "streamRoom error roomId=$roomId", t)
+            throw t
         } finally {
             withContext(NonCancellable) {
                 runCatching { channel.unsubscribe() }
             }
+            logger.i(TAG, "streamRoom ended roomId=$roomId")
         }
     }
 
@@ -213,9 +248,5 @@ class SupabaseMessagesRepository(
             deleted_at = dto.deletedAt,
             status = MessageStatus.Sent.name,
         )
-    }
-
-    private companion object {
-        const val PAGE_SIZE = 50
     }
 }

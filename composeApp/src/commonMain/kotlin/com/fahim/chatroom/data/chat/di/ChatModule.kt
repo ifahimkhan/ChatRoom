@@ -13,7 +13,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val chatModule: Module = module {
-    single<MessagesRepository> { SupabaseMessagesRepository(get(), get(), get(), get()) }
+    single<MessagesRepository> { SupabaseMessagesRepository(get(), get(), get(), get(), get()) }
     factory { ObserveMessagesUseCase(get()) }
     factory { LoadInitialMessagesUseCase(get()) }
     factory { LoadOlderMessagesUseCase(get()) }

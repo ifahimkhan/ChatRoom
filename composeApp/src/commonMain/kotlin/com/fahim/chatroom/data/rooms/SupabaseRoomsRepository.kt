@@ -65,8 +65,11 @@ class SupabaseRoomsRepository(
             val dtos = client.from("rooms")
                 .select { order(column = "updated_at", order = Order.DESCENDING) }
                 .decodeList<RoomDto>()
+            // Upsert each fetched room, then prune locally cached rooms that no longer exist on the
+            // server. This avoids wiping the cache when the fetch returns empty due to a transient
+            // network/RLS hiccup.
+            val serverIds = dtos.map { it.id }.toSet()
             db.transaction {
-                db.roomsQueries.deleteAll()
                 dtos.forEach { dto ->
                     db.roomsQueries.upsert(
                         id = dto.id,
@@ -76,6 +79,8 @@ class SupabaseRoomsRepository(
                         updated_at = dto.updatedAt,
                     )
                 }
+                val local = db.roomsQueries.selectAll().executeAsList()
+                local.forEach { row -> if (row.id !in serverIds) db.roomsQueries.deleteById(row.id) }
             }
         }
     }

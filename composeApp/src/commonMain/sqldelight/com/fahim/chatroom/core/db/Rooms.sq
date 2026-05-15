@@ -17,3 +17,6 @@ VALUES (?, ?, ?, ?, ?);
 
 deleteAll:
 DELETE FROM RoomEntity;
+
+deleteById:
+DELETE FROM RoomEntity WHERE id = ?;

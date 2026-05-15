@@ -1,3 +1,4 @@
+
 CREATE TABLE MessageEntity (
     id TEXT NOT NULL PRIMARY KEY,
     room_id TEXT NOT NULL,

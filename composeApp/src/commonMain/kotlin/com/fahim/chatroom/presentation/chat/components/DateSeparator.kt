@@ -16,6 +16,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.todayIn
+import kotlinx.datetime.Clock
 
 @Composable
 fun DateSeparator(date: LocalDate, modifier: Modifier = Modifier) {
@@ -38,7 +39,7 @@ fun DateSeparator(date: LocalDate, modifier: Modifier = Modifier) {
 }
 
 private fun dateLabel(date: LocalDate): String {
-    val today = kotlin.time.Clock.System.todayIn(TimeZone.currentSystemDefault())
+    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
     val yesterday = today.minus(1, DateTimeUnit.DAY)
     return when (date) {
         today -> "Today"
