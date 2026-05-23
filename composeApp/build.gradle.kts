@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.googleGmsGoogleServices)
 }
 
 kotlin {
@@ -112,6 +113,7 @@ sqldelight {
 }
 
 dependencies {
+    implementation(libs.firebase.messaging)
     debugImplementation(libs.compose.uiTooling)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

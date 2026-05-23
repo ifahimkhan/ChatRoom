@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.sqldelight) apply false
+    alias(libs.plugins.googleGmsGoogleServices) apply false
 }
 
 // Force all io.ktor artifacts to 3.2.2 so supabase-kt's transitive 3.2.0 pull is overridden.
