@@ -16,9 +16,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.fahim.chatroom.domain.rooms.model.Room
 import com.fahim.chatroom.presentation.common.NotificationPermissionStatus
 import com.fahim.chatroom.presentation.common.rememberNotificationPermissionRequester
@@ -55,16 +58,23 @@ fun RoomListScreen(
     viewModel: RoomListViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    // Refresh whenever the screen resumes — covers app-foreground and back-navigation alike.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
+    }
     RoomListContent(
         state = state,
         onCreateRoom = onCreateRoom,
         onRoomClick = onRoomClick,
         onOpenProfile = onOpenProfile,
         onRetry = viewModel::refresh,
+        onRefresh = viewModel::refresh,
         modifier = modifier,
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoomListContent(
     state: RoomListUiState,
@@ -72,6 +82,7 @@ private fun RoomListContent(
     onRoomClick: (Room) -> Unit,
     onOpenProfile: () -> Unit,
     onRetry: () -> Unit,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val roomCount = state.rooms.size
@@ -89,7 +100,13 @@ private fun RoomListContent(
             Column(modifier = Modifier.fillMaxSize()) {
                 NotificationPermissionBanner()
                 Box(modifier = Modifier.fillMaxSize()) {
-                    RoomListBody(state, onCreateRoom, onRoomClick, onRetry)
+                    PullToRefreshBox(
+                        isRefreshing = state.isLoading && state.phase == RoomListUiState.Phase.Content,
+                        onRefresh = onRefresh,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        RoomListBody(state, onCreateRoom, onRoomClick, onRetry)
+                    }
                     if (state.phase == RoomListUiState.Phase.Content) {
                         AuroraFab(
                             onClick = onCreateRoom,
@@ -226,7 +243,7 @@ private fun RoomListScreenContentPreview() {
     ChatTheme {
         RoomListContent(
             state = RoomListUiState(rooms = previewRooms()),
-            onCreateRoom = {}, onRoomClick = {}, onOpenProfile = {}, onRetry = {},
+            onCreateRoom = {}, onRoomClick = {}, onOpenProfile = {}, onRetry = {}, onRefresh = {},
         )
     }
 }
@@ -237,7 +254,7 @@ private fun RoomListScreenEmptyPreview() {
     ChatTheme {
         RoomListContent(
             state = RoomListUiState(rooms = emptyList(), isLoading = false),
-            onCreateRoom = {}, onRoomClick = {}, onOpenProfile = {}, onRetry = {},
+            onCreateRoom = {}, onRoomClick = {}, onOpenProfile = {}, onRetry = {}, onRefresh = {},
         )
     }
 }
@@ -248,7 +265,7 @@ private fun RoomListScreenLoadingPreview() {
     ChatTheme {
         RoomListContent(
             state = RoomListUiState(isLoading = true),
-            onCreateRoom = {}, onRoomClick = {}, onOpenProfile = {}, onRetry = {},
+            onCreateRoom = {}, onRoomClick = {}, onOpenProfile = {}, onRetry = {}, onRefresh = {},
         )
     }
 }
@@ -259,7 +276,7 @@ private fun RoomListScreenErrorPreview() {
     ChatTheme {
         RoomListContent(
             state = RoomListUiState(errorMessage = "Network unreachable. Try again."),
-            onCreateRoom = {}, onRoomClick = {}, onOpenProfile = {}, onRetry = {},
+            onCreateRoom = {}, onRoomClick = {}, onOpenProfile = {}, onRetry = {}, onRefresh = {},
         )
     }
 }

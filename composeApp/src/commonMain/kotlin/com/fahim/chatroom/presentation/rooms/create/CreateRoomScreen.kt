@@ -24,8 +24,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.fahim.chatroom.presentation.designsystem.components.AppScaffold
 import com.fahim.chatroom.presentation.designsystem.theme.ChatTheme
@@ -71,6 +73,8 @@ private fun CreateRoomContent(
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     AppScaffold(
         title = "New room",
         modifier = modifier,
@@ -107,11 +111,17 @@ private fun CreateRoomContent(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Done,
                     ),
-                    keyboardActions = KeyboardActions(onDone = { onAddInvitee() }),
+                    keyboardActions = KeyboardActions(onDone = {
+                        keyboardController?.hide()
+                        onAddInvitee()
+                    }),
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(
-                    onClick = onAddInvitee,
+                    onClick = {
+                        keyboardController?.hide()
+                        onAddInvitee()
+                    },
                     enabled = state.canAddInvitee,
                 ) { Text(if (state.isResolving) "…" else "Add") }
             }
@@ -122,6 +132,8 @@ private fun CreateRoomContent(
                     text = resolveError,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
@@ -148,11 +160,16 @@ private fun CreateRoomContent(
                     text = createError,
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
             Button(
-                onClick = onSubmit,
+                onClick = {
+                    keyboardController?.hide()
+                    onSubmit()
+                },
                 enabled = state.canCreate,
                 modifier = Modifier.fillMaxWidth(),
             ) {

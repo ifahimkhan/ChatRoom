@@ -1,6 +1,9 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+import com.codingfeline.buildkonfig.compiler.FieldSpec.Type
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -9,7 +12,16 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.sqldelight)
     alias(libs.plugins.googleGmsGoogleServices)
+    alias(libs.plugins.buildKonfig)
 }
+
+// Load Supabase config from local.properties (gitignored). Falls back to env vars for CI.
+val supabaseProps: Properties = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun secret(key: String): String =
+    supabaseProps.getProperty(key) ?: System.getenv(key) ?: ""
 
 kotlin {
     androidTarget {
@@ -112,6 +124,16 @@ sqldelight {
         create("ChatDatabase") {
             packageName.set("com.fahim.chatroom.core.db")
         }
+    }
+}
+
+buildkonfig {
+    packageName = "com.fahim.chatroom.core.config"
+    objectName = "BuildKonfig"
+
+    defaultConfigs {
+        buildConfigField(Type.STRING, "SUPABASE_URL", secret("SUPABASE_URL"))
+        buildConfigField(Type.STRING, "SUPABASE_ANON_KEY", secret("SUPABASE_ANON_KEY"))
     }
 }
 
