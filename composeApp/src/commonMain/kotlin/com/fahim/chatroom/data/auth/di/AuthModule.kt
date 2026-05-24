@@ -15,7 +15,7 @@ val authModule: Module = module {
     single<AuthRepository> { SupabaseAuthRepository(get(), get()) }
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
-    factory { SignOutUseCase(get()) }
+    factory { SignOutUseCase(get(), get()) }
     factory { ObserveSessionUseCase(get()) }
-    viewModel { AuthViewModel(get(), get()) }
+    viewModel { AuthViewModel(get(), get(), get()) }
 }

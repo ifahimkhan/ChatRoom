@@ -26,11 +26,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.fahim.chatroom.presentation.designsystem.components.AppScaffold
+import com.fahim.chatroom.presentation.designsystem.theme.ChatTheme
 import com.fahim.chatroom.presentation.designsystem.theme.Spacing
 import org.koin.compose.viewmodel.koinViewModel
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CreateRoomScreen(
     onClose: () -> Unit,
@@ -46,6 +47,30 @@ fun CreateRoomScreen(
         }
     }
 
+    CreateRoomContent(
+        state = state,
+        onClose = onClose,
+        onNameChange = viewModel::onNameChange,
+        onEmailChange = viewModel::onEmailChange,
+        onAddInvitee = viewModel::addInvitee,
+        onRemoveInvitee = viewModel::removeInvitee,
+        onSubmit = viewModel::submit,
+        modifier = modifier,
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CreateRoomContent(
+    state: CreateRoomUiState,
+    onClose: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
+    onAddInvitee: () -> Unit,
+    onRemoveInvitee: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     AppScaffold(
         title = "New room",
         modifier = modifier,
@@ -60,7 +85,7 @@ fun CreateRoomScreen(
         ) {
             OutlinedTextField(
                 value = state.name,
-                onValueChange = viewModel::onNameChange,
+                onValueChange = onNameChange,
                 label = { Text("Room name") },
                 singleLine = true,
                 enabled = !state.isCreating,
@@ -74,7 +99,7 @@ fun CreateRoomScreen(
             ) {
                 OutlinedTextField(
                     value = state.emailInput,
-                    onValueChange = viewModel::onEmailChange,
+                    onValueChange = onEmailChange,
                     label = { Text("Email") },
                     singleLine = true,
                     enabled = !state.isCreating,
@@ -82,11 +107,11 @@ fun CreateRoomScreen(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Done,
                     ),
-                    keyboardActions = KeyboardActions(onDone = { viewModel.addInvitee() }),
+                    keyboardActions = KeyboardActions(onDone = { onAddInvitee() }),
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(
-                    onClick = viewModel::addInvitee,
+                    onClick = onAddInvitee,
                     enabled = state.canAddInvitee,
                 ) { Text(if (state.isResolving) "…" else "Add") }
             }
@@ -107,7 +132,7 @@ fun CreateRoomScreen(
                 ) {
                     state.invitees.forEach { invitee ->
                         AssistChip(
-                            onClick = { viewModel.removeInvitee(invitee.userId) },
+                            onClick = { onRemoveInvitee(invitee.userId) },
                             label = { Text("${invitee.displayName} ✕") },
                             colors = AssistChipDefaults.assistChipColors(),
                         )
@@ -127,12 +152,42 @@ fun CreateRoomScreen(
             }
 
             Button(
-                onClick = viewModel::submit,
+                onClick = onSubmit,
                 enabled = state.canCreate,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(if (state.isCreating) "Creating…" else "Create room")
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun CreateRoomScreenEmptyPreview() {
+    ChatTheme {
+        CreateRoomContent(
+            state = CreateRoomUiState(),
+            onClose = {}, onNameChange = {}, onEmailChange = {},
+            onAddInvitee = {}, onRemoveInvitee = {}, onSubmit = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun CreateRoomScreenWithInviteesPreview() {
+    ChatTheme {
+        CreateRoomContent(
+            state = CreateRoomUiState(
+                name = "Founders",
+                invitees = listOf(
+                    CreateRoomUiState.Invitee("1", "ada@example.com", "Ada Lovelace"),
+                    CreateRoomUiState.Invitee("2", "grace@example.com", "Grace Hopper"),
+                ),
+            ),
+            onClose = {}, onNameChange = {}, onEmailChange = {},
+            onAddInvitee = {}, onRemoveInvitee = {}, onSubmit = {},
+        )
     }
 }

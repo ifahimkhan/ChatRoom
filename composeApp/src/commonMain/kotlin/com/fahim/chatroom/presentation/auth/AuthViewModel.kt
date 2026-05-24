@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.fahim.chatroom.core.error.AppResult
 import com.fahim.chatroom.domain.auth.usecase.SignInUseCase
 import com.fahim.chatroom.domain.auth.usecase.SignUpUseCase
+import com.fahim.chatroom.domain.notifications.usecase.RegisterDeviceTokenUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 class AuthViewModel(
     private val signIn: SignInUseCase,
     private val signUp: SignUpUseCase,
+    private val registerDeviceToken: RegisterDeviceTokenUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthUiState())
@@ -41,7 +43,10 @@ class AuthViewModel(
                 AuthUiState.Mode.SignUp -> signUp(current.email, current.password)
             }
             when (result) {
-                is AppResult.Success -> _state.update { it.copy(isLoading = false) }
+                is AppResult.Success -> {
+                    _state.update { it.copy(isLoading = false) }
+                    launch { registerDeviceToken() }
+                }
                 is AppResult.Failure -> _state.update {
                     it.copy(isLoading = false, errorMessage = result.error.message ?: "Sign-in failed")
                 }

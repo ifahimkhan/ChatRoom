@@ -19,7 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.fahim.chatroom.presentation.designsystem.components.AppScaffold
+import com.fahim.chatroom.presentation.designsystem.theme.ChatTheme
 import com.fahim.chatroom.presentation.designsystem.theme.Spacing
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -29,6 +31,25 @@ fun AuthScreen(
     viewModel: AuthViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    AuthContent(
+        state = state,
+        onEmailChange = viewModel::onEmailChange,
+        onPasswordChange = viewModel::onPasswordChange,
+        onSubmit = viewModel::submit,
+        onToggleMode = viewModel::toggleMode,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun AuthContent(
+    state: AuthUiState,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onToggleMode: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val isSignIn = state.mode == AuthUiState.Mode.SignIn
 
     AppScaffold(
@@ -44,7 +65,7 @@ fun AuthScreen(
         ) {
             OutlinedTextField(
                 value = state.email,
-                onValueChange = viewModel::onEmailChange,
+                onValueChange = onEmailChange,
                 label = { Text("Email") },
                 singleLine = true,
                 enabled = !state.isLoading,
@@ -56,7 +77,7 @@ fun AuthScreen(
             )
             OutlinedTextField(
                 value = state.password,
-                onValueChange = viewModel::onPasswordChange,
+                onValueChange = onPasswordChange,
                 label = { Text("Password") },
                 singleLine = true,
                 enabled = !state.isLoading,
@@ -65,7 +86,7 @@ fun AuthScreen(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done,
                 ),
-                keyboardActions = KeyboardActions(onDone = { viewModel.submit() }),
+                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
                 supportingText = {
                     Text(
                         "Minimum ${AuthUiState.MIN_PASSWORD_LENGTH} characters",
@@ -85,7 +106,7 @@ fun AuthScreen(
             }
 
             Button(
-                onClick = viewModel::submit,
+                onClick = onSubmit,
                 enabled = state.canSubmit,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -93,7 +114,7 @@ fun AuthScreen(
             }
 
             TextButton(
-                onClick = viewModel::toggleMode,
+                onClick = onToggleMode,
                 enabled = !state.isLoading,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -108,4 +129,31 @@ private fun buttonLabel(mode: AuthUiState.Mode, isLoading: Boolean): String = wh
     isLoading && mode == AuthUiState.Mode.SignUp -> "Creating account…"
     mode == AuthUiState.Mode.SignIn -> "Sign in"
     else -> "Create account"
+}
+
+@Preview
+@Composable
+private fun AuthScreenSignInPreview() {
+    ChatTheme {
+        AuthContent(
+            state = AuthUiState(mode = AuthUiState.Mode.SignIn, email = "ada@example.com"),
+            onEmailChange = {}, onPasswordChange = {}, onSubmit = {}, onToggleMode = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun AuthScreenSignUpPreview() {
+    ChatTheme {
+        AuthContent(
+            state = AuthUiState(
+                mode = AuthUiState.Mode.SignUp,
+                email = "ada@example.com",
+                password = "short",
+                errorMessage = "Password must be at least 6 characters.",
+            ),
+            onEmailChange = {}, onPasswordChange = {}, onSubmit = {}, onToggleMode = {},
+        )
+    }
 }

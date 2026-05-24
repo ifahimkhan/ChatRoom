@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalUuidApi::class)
 class SupabaseMessagesRepository(
@@ -108,6 +109,7 @@ class SupabaseMessagesRepository(
         result
     }
 
+    @OptIn(ExperimentalTime::class)
     override suspend fun loadOlder(
         roomId: String,
         before: Instant,

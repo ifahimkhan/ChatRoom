@@ -6,7 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		64E3312B2FC3B1F300973097 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 64E3312A2FC3B1B500973097 /* libsqlite3.tbd */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		64E3312A2FC3B1B500973097 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		C157D1A8F69B51C15DEBD682 /* ChatRoom.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChatRoom.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -21,17 +26,17 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0520370E25D17EFA0D20561C /* Configuration */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Configuration;
+			sourceTree = "<group>";
+		};
 		568B88750FD65402D4A4A420 /* iosApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				6C8F68BEA01FA94D9B43EF6E /* Exceptions for "iosApp" folder in "iosApp" target */,
 			);
 			path = iosApp;
-			sourceTree = "<group>";
-		};
-		0520370E25D17EFA0D20561C /* Configuration */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -41,6 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				64E3312B2FC3B1F300973097 /* libsqlite3.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -52,8 +58,17 @@
 			children = (
 				0520370E25D17EFA0D20561C /* Configuration */,
 				568B88750FD65402D4A4A420 /* iosApp */,
+				64E331292FC3B1B500973097 /* Frameworks */,
 				E46ECC76BF9D8711190547BF /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		64E331292FC3B1B500973097 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				64E3312A2FC3B1B500973097 /* libsqlite3.tbd */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		E46ECC76BF9D8711190547BF /* Products */ = {
@@ -299,7 +314,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				DEVELOPMENT_TEAM = U6FPT8HM47;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -308,6 +323,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -327,7 +343,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				DEVELOPMENT_TEAM = U6FPT8HM47;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -336,6 +352,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

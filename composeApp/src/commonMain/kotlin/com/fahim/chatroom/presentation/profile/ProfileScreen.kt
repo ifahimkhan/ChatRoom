@@ -17,8 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.fahim.chatroom.presentation.designsystem.components.AppScaffold
 import com.fahim.chatroom.presentation.designsystem.components.LoadingView
+import com.fahim.chatroom.presentation.designsystem.theme.ChatTheme
 import com.fahim.chatroom.presentation.designsystem.theme.Spacing
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -30,7 +32,25 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    ProfileContent(
+        state = state,
+        onBack = onBack,
+        onSignOut = onSignOut,
+        onDisplayNameChange = viewModel::onDisplayNameChange,
+        onSave = viewModel::save,
+        modifier = modifier,
+    )
+}
 
+@Composable
+private fun ProfileContent(
+    state: ProfileUiState,
+    onBack: () -> Unit,
+    onSignOut: () -> Unit,
+    onDisplayNameChange: (String) -> Unit,
+    onSave: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     AppScaffold(
         title = "Profile",
         modifier = modifier,
@@ -55,7 +75,7 @@ fun ProfileScreen(
 
                     OutlinedTextField(
                         value = state.displayNameDraft,
-                        onValueChange = viewModel::onDisplayNameChange,
+                        onValueChange = onDisplayNameChange,
                         label = { Text("Display name") },
                         singleLine = true,
                         enabled = !state.isSaving,
@@ -78,7 +98,7 @@ fun ProfileScreen(
                     }
 
                     Button(
-                        onClick = viewModel::save,
+                        onClick = onSave,
                         enabled = state.canSave,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -94,5 +114,32 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun ProfileScreenLoadedPreview() {
+    ChatTheme {
+        ProfileContent(
+            state = ProfileUiState(
+                isLoading = false,
+                email = "ada@example.com",
+                displayName = "Ada Lovelace",
+                displayNameDraft = "Ada Lovelace",
+            ),
+            onBack = {}, onSignOut = {}, onDisplayNameChange = {}, onSave = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun ProfileScreenLoadingPreview() {
+    ChatTheme {
+        ProfileContent(
+            state = ProfileUiState(isLoading = true),
+            onBack = {}, onSignOut = {}, onDisplayNameChange = {}, onSave = {},
+        )
     }
 }

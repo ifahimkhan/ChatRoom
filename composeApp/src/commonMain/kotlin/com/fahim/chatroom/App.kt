@@ -8,16 +8,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.Modifier
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.fahim.chatroom.core.navigation.DeepLinkBus
 import com.fahim.chatroom.domain.auth.repository.AuthRepository
+import com.fahim.chatroom.domain.auth.usecase.SignOutUseCase
+import com.fahim.chatroom.domain.notifications.usecase.RegisterDeviceTokenUseCase
 import com.fahim.chatroom.domain.rooms.model.Room
+import com.fahim.chatroom.domain.rooms.repository.RoomsRepository
 import com.fahim.chatroom.presentation.auth.AuthScreen
 import com.fahim.chatroom.presentation.chat.ChatScreen
+import com.fahim.chatroom.presentation.common.PlatformBackHandler
+import com.fahim.chatroom.presentation.common.platformSwipeBack
 import com.fahim.chatroom.presentation.designsystem.components.LoadingView
 import com.fahim.chatroom.presentation.designsystem.theme.ChatTheme
 import com.fahim.chatroom.presentation.profile.ProfileScreen
 import com.fahim.chatroom.presentation.rooms.create.CreateRoomScreen
 import com.fahim.chatroom.presentation.rooms.list.RoomListScreen
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.compose.KoinContext
 import org.koin.compose.koinInject
@@ -35,6 +43,10 @@ fun App() {
     ChatTheme {
         KoinContext {
             val authRepo: AuthRepository = koinInject()
+            val roomsRepo: RoomsRepository = koinInject()
+            val signOutUseCase: SignOutUseCase = koinInject()
+            val registerDeviceToken: RegisterDeviceTokenUseCase = koinInject()
+            val deepLinkBus: DeepLinkBus = koinInject()
             val session by authRepo.session.collectAsState()
             val isInitializing by authRepo.isInitializing.collectAsState()
             val scope = rememberCoroutineScope()
@@ -47,8 +59,30 @@ fun App() {
 
             var route: AppRoute by remember { mutableStateOf(AppRoute.RoomList) }
 
-            // Drop in-flight nav state on sign-out so the next sign-in starts at the list.
             LaunchedEffect(currentSession.userId) { route = AppRoute.RoomList }
+
+            LaunchedEffect(currentSession.userId) { registerDeviceToken() }
+
+            LaunchedEffect(currentSession.userId) {
+                deepLinkBus.pendingRoomId.collect { roomId ->
+                    val cached = roomsRepo.rooms.value.firstOrNull { it.id == roomId }
+                    val room = cached ?: run {
+                        // Room not in local cache (cold start). Refresh and try again from the new emission.
+                        roomsRepo.refresh()
+                        roomsRepo.rooms.first { list -> list.any { it.id == roomId } || list.isNotEmpty() }
+                            .firstOrNull { it.id == roomId }
+                    }
+                    if (room != null) route = AppRoute.Chat(room)
+                }
+            }
+
+            PlatformBackHandler(enabled = route != AppRoute.RoomList) { route = AppRoute.RoomList }
+
+            val backToRoot: () -> Unit = { route = AppRoute.RoomList }
+            val swipeBack = Modifier.platformSwipeBack(
+                enabled = route != AppRoute.RoomList,
+                onBack = backToRoot,
+            )
 
             when (val r = route) {
                 AppRoute.RoomList -> RoomListScreen(
@@ -58,18 +92,21 @@ fun App() {
                 )
 
                 AppRoute.CreateRoom -> CreateRoomScreen(
-                    onClose = { route = AppRoute.RoomList },
+                    onClose = backToRoot,
                     onCreated = { route = AppRoute.RoomList },
+                    modifier = swipeBack,
                 )
 
                 AppRoute.Profile -> ProfileScreen(
-                    onBack = { route = AppRoute.RoomList },
-                    onSignOut = { scope.launch { authRepo.signOut() } },
+                    onBack = backToRoot,
+                    onSignOut = { scope.launch { signOutUseCase() } },
+                    modifier = swipeBack,
                 )
 
                 is AppRoute.Chat -> ChatScreen(
                     room = r.room,
-                    onBack = { route = AppRoute.RoomList },
+                    onBack = backToRoot,
+                    modifier = swipeBack,
                 )
             }
         }

@@ -19,5 +19,5 @@ val chatModule: Module = module {
     factory { LoadOlderMessagesUseCase(get()) }
     factory { SendMessageUseCase(get()) }
     factory { RetryFailedMessageUseCase(get()) }
-    viewModel { (roomId: String) -> ChatViewModel(roomId, get(), get()) }
+    viewModel { (roomId: String) -> ChatViewModel(roomId, get(), get(), get()) }
 }

@@ -3,6 +3,7 @@ package com.fahim.chatroom.presentation.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fahim.chatroom.core.error.AppResult
+import com.fahim.chatroom.core.notifications.ActiveRoomTracker
 import com.fahim.chatroom.domain.auth.repository.AuthRepository
 import com.fahim.chatroom.domain.chat.model.Message
 import com.fahim.chatroom.domain.chat.repository.MessagesRepository
@@ -22,6 +23,7 @@ class ChatViewModel(
     private val roomId: String,
     private val messages: MessagesRepository,
     authRepo: AuthRepository,
+    private val activeRoomTracker: ActiveRoomTracker,
 ) : ViewModel() {
 
     private val currentUserId: String? = authRepo.session.value?.userId
@@ -52,8 +54,14 @@ class ChatViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ChatUiState())
 
     init {
+        activeRoomTracker.enter(roomId)
         loadInitial()
         viewModelScope.launch { messages.streamRoom(roomId) }
+    }
+
+    override fun onCleared() {
+        activeRoomTracker.leave(roomId)
+        super.onCleared()
     }
 
     fun retryInitial() = loadInitial()

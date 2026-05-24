@@ -9,10 +9,13 @@ import com.fahim.chatroom.core.dispatchers.DefaultDispatcherProvider
 import com.fahim.chatroom.core.dispatchers.DispatcherProvider
 import com.fahim.chatroom.core.logging.AppLogger
 import com.fahim.chatroom.core.logging.ConsoleAppLogger
+import com.fahim.chatroom.core.navigation.DeepLinkBus
+import com.fahim.chatroom.core.notifications.ActiveRoomTracker
 import com.fahim.chatroom.core.supabase.buildSupabaseClient
 import com.fahim.chatroom.data.auth.SecureStorageSessionManager
 import com.fahim.chatroom.data.auth.di.authModule
 import com.fahim.chatroom.data.chat.di.chatModule
+import com.fahim.chatroom.data.notifications.di.notificationsModule
 import com.fahim.chatroom.data.profile.di.profileModule
 import com.fahim.chatroom.data.rooms.di.roomsModule
 import io.github.jan.supabase.auth.SessionManager
@@ -30,12 +33,14 @@ val coreModule: Module = module {
     single<SessionManager> { SecureStorageSessionManager(get()) }
     single { buildSupabaseClient(get(), get()) }
     single { ChatDatabase(get<DatabaseDriverFactory>().create()) }
+    single { ActiveRoomTracker() }
+    single { DeepLinkBus() }
 }
 
 /** Bindings supplied per platform (e.g. [com.fahim.chatroom.core.storage.SecureStorage]). */
 expect val platformModule: Module
 
-fun appModules(): List<Module> = listOf(coreModule, platformModule, authModule, roomsModule, chatModule, profileModule)
+fun appModules(): List<Module> = listOf(coreModule, platformModule, authModule, roomsModule, chatModule, profileModule, notificationsModule)
 
 fun initKoin(appDeclaration: KoinAppDeclaration = {}): KoinApplication = startKoin {
     appDeclaration()

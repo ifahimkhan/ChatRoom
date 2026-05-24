@@ -25,6 +25,7 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            linkerOpts("-lsqlite3")
         }
     }
     
@@ -36,6 +37,8 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.koin.android)
             implementation(libs.sqldelight.driver.android)
+            implementation(libs.firebase.messaging)
+            implementation(libs.androidx.lifecycle.process)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -43,7 +46,7 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
-            implementation(libs.compose.uiToolingPreview)
+            implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
@@ -113,7 +116,6 @@ sqldelight {
 }
 
 dependencies {
-    implementation(libs.firebase.messaging)
     debugImplementation(libs.compose.uiTooling)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

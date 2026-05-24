@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">ChatRoom</string>
+    <string name="default_notification_channel_id">chat_messages</string>
+    <string name="notification_channel_chat_name">Chat messages</string>
+    <string name="notification_channel_chat_description">New messages in your rooms</string>
+    <string name="notification_permission_rationale">Allow notifications so you don\'t miss new chat messages.</string>
+    <string name="notification_permission_cta">Turn on notifications</string>
+    <string name="notification_permission_dismiss">Not now</string>
 </resources>
