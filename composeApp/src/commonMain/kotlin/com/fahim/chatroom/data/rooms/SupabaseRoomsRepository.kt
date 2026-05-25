@@ -62,9 +62,26 @@ class SupabaseRoomsRepository(
 
     override suspend fun refresh(): AppResult<Unit> = withContext(io) {
         appResultOf {
-            val dtos = client.from("rooms")
-                .select { order(column = "updated_at", order = Order.DESCENDING) }
-                .decodeList<RoomDto>()
+            val uid = authRepo.session.value?.userId ?: throw AppError.Unauthorized
+            
+            // 1. Get the list of room IDs where this user is a member
+            val memberDtos = client.from("room_members")
+                .select { filter { eq("user_id", uid) } }
+                .decodeList<NewRoomMemberDto>()
+            val roomIds = memberDtos.map { it.roomId }
+            
+            // 2. Fetch details for only those rooms
+            val dtos = if (roomIds.isEmpty()) {
+                emptyList()
+            } else {
+                client.from("rooms")
+                    .select {
+                        filter { isIn("id", roomIds) }
+                        order(column = "updated_at", order = Order.DESCENDING)
+                    }
+                    .decodeList<RoomDto>()
+            }
+            
             // Upsert each fetched room, then prune locally cached rooms that no longer exist on the
             // server. This avoids wiping the cache when the fetch returns empty due to a transient
             // network/RLS hiccup.
@@ -122,6 +139,55 @@ class SupabaseRoomsRepository(
                 .decodeList<UserLookupDto>()
                 .firstOrNull()
                 ?.toDomain()
+        }
+    }
+
+    override suspend fun getRoomMembers(roomId: String): AppResult<List<UserLookup>> = withContext(io) {
+        appResultOf {
+            val memberDtos = client.from("room_members")
+                .select { filter { eq("room_id", roomId) } }
+                .decodeList<NewRoomMemberDto>()
+            val userIds = memberDtos.map { it.userId }
+            if (userIds.isEmpty()) {
+                emptyList()
+            } else {
+                val profileDtos = client.from("profiles")
+                    .select { filter { isIn("id", userIds) } }
+                    .decodeList<UserLookupDto>()
+                profileDtos.map { it.toDomain() }
+            }
+        }
+    }
+
+    override suspend fun deleteRoom(roomId: String): AppResult<Unit> = withContext(io) {
+        appResultOf {
+            client.from("rooms").delete {
+                filter {
+                    eq("id", roomId)
+                }
+            }
+            db.roomsQueries.deleteById(roomId)
+        }
+    }
+
+    override suspend fun removeRoomMember(roomId: String, userId: String): AppResult<Unit> = withContext(io) {
+        appResultOf {
+            client.from("room_members").delete {
+                filter {
+                    eq("room_id", roomId)
+                    eq("user_id", userId)
+                }
+            }
+            Unit
+        }
+    }
+
+    override suspend fun addRoomMember(roomId: String, userId: String): AppResult<Unit> = withContext(io) {
+        appResultOf {
+            client.from("room_members").insert(
+                NewRoomMemberDto(roomId = roomId, userId = userId)
+            )
+            Unit
         }
     }
 }

@@ -3,12 +3,15 @@ package com.fahim.chatroom.presentation.chat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -35,12 +38,16 @@ import com.fahim.chatroom.domain.rooms.model.Room
 import com.fahim.chatroom.presentation.chat.components.DateSeparator
 import com.fahim.chatroom.presentation.chat.components.MessageBubble
 import com.fahim.chatroom.presentation.chat.components.MessageInputBar
+import com.fahim.chatroom.presentation.chat.components.RoomMembersDialog
+import com.fahim.chatroom.presentation.chat.components.DeleteConfirmationDialog
 import com.fahim.chatroom.presentation.chat.model.ChatListItem
 import com.fahim.chatroom.presentation.designsystem.components.AppScaffold
 import com.fahim.chatroom.presentation.designsystem.components.ChevronDownIcon
 import com.fahim.chatroom.presentation.designsystem.components.EmptyView
 import com.fahim.chatroom.presentation.designsystem.components.ErrorView
 import com.fahim.chatroom.presentation.designsystem.components.LoadingView
+import com.fahim.chatroom.presentation.designsystem.components.IconChip
+import com.fahim.chatroom.presentation.designsystem.components.UsersIcon
 import com.fahim.chatroom.presentation.designsystem.theme.ChatTheme
 import com.fahim.chatroom.presentation.designsystem.theme.Spacing
 import kotlinx.coroutines.launch
@@ -78,6 +85,12 @@ fun ChatScreen(
             }
     }
 
+    LaunchedEffect(state.isRoomDeleted) {
+        if (state.isRoomDeleted) {
+            onBack()
+        }
+    }
+
     ChatContent(
         title = room.name,
         state = state,
@@ -87,6 +100,13 @@ fun ChatScreen(
         onSend = viewModel::send,
         onRetryFailed = viewModel::retryFailed,
         onRetryInitial = viewModel::retryInitial,
+        onShowMembers = viewModel::showMembers,
+        onDismissMembers = viewModel::dismissMembers,
+        onDeleteClick = viewModel::requestDeleteRoom,
+        onConfirmDelete = viewModel::confirmDeleteRoom,
+        onDismissDelete = viewModel::dismissDeleteConfirmation,
+        onAddMemberClick = viewModel::addRoomMember,
+        onRemoveMemberClick = viewModel::removeRoomMember,
         modifier = modifier,
     )
 }
@@ -101,9 +121,17 @@ private fun ChatContent(
     onSend: () -> Unit,
     onRetryFailed: (String) -> Unit,
     onRetryInitial: () -> Unit,
+    onShowMembers: () -> Unit = {},
+    onDismissMembers: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
+    onConfirmDelete: () -> Unit = {},
+    onDismissDelete: () -> Unit = {},
+    onAddMemberClick: (String) -> Unit = {},
+    onRemoveMemberClick: (String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
     // Stick to the latest message when a new one arrives and the user is near the bottom.
     LaunchedEffect(state.items.firstOrNull()?.key) {
@@ -121,9 +149,23 @@ private fun ChatContent(
         subtitle = "Private room",
         modifier = modifier,
         onBack = onBack,
+        actions = {
+            IconChip(onClick = onShowMembers) {
+                UsersIcon(tint = MaterialTheme.colorScheme.onSurface)
+            }
+        }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding).imePadding()) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { focusManager.clearFocus() }
+                    )
+            ) {
                 when (state.phase) {
                     ChatUiState.Phase.Loading -> LoadingView()
 
@@ -188,6 +230,29 @@ private fun ChatContent(
                 )
             }
         }
+
+        RoomMembersDialog(
+            show = state.showMembersDialog,
+            isLoading = state.isLoadingMembers,
+            members = state.members,
+            error = state.membersError,
+            onDismiss = onDismissMembers,
+            isOwner = state.isOwner,
+            currentUserId = state.currentUserId,
+            onDeleteClick = onDeleteClick,
+            onAddMemberClick = onAddMemberClick,
+            onRemoveMemberClick = onRemoveMemberClick,
+            isAddingMember = state.isAddingMember,
+            addMemberError = state.addMemberError,
+        )
+
+        DeleteConfirmationDialog(
+            show = state.showDeleteConfirmation,
+            isDeleting = state.isDeletingRoom,
+            error = state.deleteRoomError,
+            onConfirm = onConfirmDelete,
+            onDismiss = onDismissDelete,
+        )
     }
 }
 

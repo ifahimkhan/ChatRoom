@@ -7,6 +7,8 @@ import com.fahim.chatroom.core.notifications.ActiveRoomTracker
 import com.fahim.chatroom.domain.auth.repository.AuthRepository
 import com.fahim.chatroom.domain.chat.model.Message
 import com.fahim.chatroom.domain.chat.repository.MessagesRepository
+import com.fahim.chatroom.domain.rooms.model.UserLookup
+import com.fahim.chatroom.domain.rooms.repository.RoomsRepository
 import com.fahim.chatroom.presentation.chat.model.ChatListItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,6 +24,7 @@ import kotlinx.datetime.toLocalDateTime
 class ChatViewModel(
     private val roomId: String,
     private val messages: MessagesRepository,
+    private val rooms: RoomsRepository,
     authRepo: AuthRepository,
     private val activeRoomTracker: ActiveRoomTracker,
 ) : ViewModel() {
@@ -35,14 +38,28 @@ class ChatViewModel(
         val hasOlder: Boolean = true,
         val errorMessage: String? = null,
         val input: String = "",
+        val members: List<UserLookup> = emptyList(),
+        val isLoadingMembers: Boolean = false,
+        val showMembersDialog: Boolean = false,
+        val membersError: String? = null,
+        val isRoomDeleted: Boolean = false,
+        val isDeletingRoom: Boolean = false,
+        val deleteRoomError: String? = null,
+        val showDeleteConfirmation: Boolean = false,
+        val isAddingMember: Boolean = false,
+        val addMemberError: String? = null,
     )
 
     private val flags = MutableStateFlow(Flags())
 
     val state: StateFlow<ChatUiState> = combine(
         messages.messages(roomId),
+        rooms.rooms,
         flags,
-    ) { msgs, f ->
+    ) { msgs, allRooms, f ->
+        val room = allRooms.find { it.id == roomId }
+        val isOwner = room?.createdBy != null && room.createdBy == currentUserId
+
         ChatUiState(
             items = buildChatItems(msgs, currentUserId, zone),
             isLoadingInitial = f.isLoadingInitial,
@@ -50,6 +67,18 @@ class ChatViewModel(
             hasOlder = f.hasOlder,
             errorMessage = f.errorMessage,
             input = f.input,
+            members = f.members,
+            isLoadingMembers = f.isLoadingMembers,
+            showMembersDialog = f.showMembersDialog,
+            membersError = f.membersError,
+            isOwner = isOwner,
+            isRoomDeleted = f.isRoomDeleted,
+            isDeletingRoom = f.isDeletingRoom,
+            deleteRoomError = f.deleteRoomError,
+            showDeleteConfirmation = f.showDeleteConfirmation,
+            isAddingMember = f.isAddingMember,
+            addMemberError = f.addMemberError,
+            currentUserId = currentUserId,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ChatUiState())
 
@@ -110,6 +139,111 @@ class ChatViewModel(
     fun retryFailed(localId: String) {
         viewModelScope.launch { messages.retrySend(roomId, localId) }
     }
+
+    fun showMembers() {
+        flags.update { it.copy(showMembersDialog = true, isLoadingMembers = true, membersError = null) }
+        viewModelScope.launch {
+            when (val r = rooms.getRoomMembers(roomId)) {
+                is AppResult.Success -> flags.update { it.copy(isLoadingMembers = false, members = r.data) }
+                is AppResult.Failure -> flags.update {
+                    it.copy(isLoadingMembers = false, membersError = r.error.message ?: "Couldn't load members")
+                }
+            }
+        }
+    }
+
+    fun dismissMembers() {
+        flags.update { it.copy(showMembersDialog = false) }
+    }
+
+    fun requestDeleteRoom() {
+        flags.update { it.copy(showDeleteConfirmation = true) }
+    }
+
+    fun dismissDeleteConfirmation() {
+        flags.update { it.copy(showDeleteConfirmation = false) }
+    }
+
+    fun confirmDeleteRoom() {
+        val current = state.value
+        if (!current.isOwner || current.isDeletingRoom) return
+        flags.update { it.copy(isDeletingRoom = true, deleteRoomError = null) }
+        viewModelScope.launch {
+            when (val r = rooms.deleteRoom(roomId)) {
+                is AppResult.Success -> {
+                    flags.update { it.copy(isDeletingRoom = false, isRoomDeleted = true, showDeleteConfirmation = false) }
+                }
+                is AppResult.Failure -> {
+                    flags.update {
+                        it.copy(
+                            isDeletingRoom = false,
+                            deleteRoomError = r.error.message ?: "Couldn't delete room"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun addRoomMember(email: String) {
+        val emailInput = email.trim()
+        if (emailInput.isEmpty()) return
+        flags.update { it.copy(isAddingMember = true, addMemberError = null) }
+        viewModelScope.launch {
+            when (val r = rooms.findUserByEmail(emailInput)) {
+                is AppResult.Success -> {
+                    val user = r.data
+                    if (user == null) {
+                        flags.update { it.copy(isAddingMember = false, addMemberError = "No user found with that email") }
+                        return@launch
+                    }
+                    if (flags.value.members.any { it.id == user.id }) {
+                        flags.update { it.copy(isAddingMember = false, addMemberError = "User is already a member") }
+                        return@launch
+                    }
+
+                    when (val addRes = rooms.addRoomMember(roomId, user.id)) {
+                        is AppResult.Success -> {
+                            flags.update { it.copy(isAddingMember = false, members = it.members + user) }
+                        }
+                        is AppResult.Failure -> {
+                            flags.update {
+                                it.copy(
+                                    isAddingMember = false,
+                                    addMemberError = addRes.error.message ?: "Failed to add user to the room"
+                                )
+                            }
+                        }
+                    }
+                }
+                is AppResult.Failure -> {
+                    flags.update {
+                        it.copy(
+                            isAddingMember = false,
+                            addMemberError = r.error.message ?: "User lookup failed"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun removeRoomMember(userId: String) {
+        viewModelScope.launch {
+            when (val r = rooms.removeRoomMember(roomId, userId)) {
+                is AppResult.Success -> {
+                    flags.update { it.copy(members = it.members.filterNot { it.id == userId }) }
+                }
+                is AppResult.Failure -> {
+                    flags.update {
+                        it.copy(membersError = r.error.message ?: "Failed to remove member")
+                    }
+                }
+            }
+        }
+    }
+
+
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

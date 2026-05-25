@@ -1,5 +1,6 @@
 package com.fahim.chatroom.presentation.chat
 
+import com.fahim.chatroom.domain.rooms.model.UserLookup
 import com.fahim.chatroom.presentation.chat.model.ChatListItem
 
 data class ChatUiState(
@@ -9,6 +10,18 @@ data class ChatUiState(
     val hasOlder: Boolean = true,
     val errorMessage: String? = null,
     val input: String = "",
+    val members: List<UserLookup> = emptyList(),
+    val isLoadingMembers: Boolean = false,
+    val showMembersDialog: Boolean = false,
+    val membersError: String? = null,
+    val isOwner: Boolean = false,
+    val isRoomDeleted: Boolean = false,
+    val isDeletingRoom: Boolean = false,
+    val deleteRoomError: String? = null,
+    val showDeleteConfirmation: Boolean = false,
+    val isAddingMember: Boolean = false,
+    val addMemberError: String? = null,
+    val currentUserId: String? = null,
 ) {
     val canSend: Boolean get() = input.isNotBlank()
 

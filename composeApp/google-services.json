@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "637505876307",
+    "project_id": "chatroom-c2129",
+    "storage_bucket": "chatroom-c2129.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637505876307:android:05ed7b4b967a866d8c31a6",
+        "android_client_info": {
+          "package_name": "com.fahim.chatroom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCV_OcC4Jp2u8RwM1oCEfSKvPiCgR-lAQU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,4 @@
+project_id = "chatroom"
+
+[functions.notify-message]
+verify_jwt = false
