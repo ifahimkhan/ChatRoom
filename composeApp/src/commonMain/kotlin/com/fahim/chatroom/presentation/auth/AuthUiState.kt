@@ -6,6 +6,7 @@ data class AuthUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val showSuccessDialog: Boolean = false,
 ) {
     val canSubmit: Boolean
         get() = email.isNotBlank() && password.length >= MIN_PASSWORD_LENGTH && !isLoading

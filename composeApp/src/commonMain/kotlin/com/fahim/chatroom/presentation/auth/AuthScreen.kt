@@ -12,13 +12,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.fahim.chatroom.presentation.designsystem.components.AppScaffold
 import com.fahim.chatroom.presentation.designsystem.theme.ChatTheme
@@ -37,6 +50,7 @@ fun AuthScreen(
         onPasswordChange = viewModel::onPasswordChange,
         onSubmit = viewModel::submit,
         onToggleMode = viewModel::toggleMode,
+        onDismissSuccessDialog = viewModel::dismissSuccessDialog,
         modifier = modifier,
     )
 }
@@ -48,6 +62,7 @@ private fun AuthContent(
     onPasswordChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onToggleMode: () -> Unit,
+    onDismissSuccessDialog: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val isSignIn = state.mode == AuthUiState.Mode.SignIn
@@ -119,6 +134,71 @@ private fun AuthContent(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(if (isSignIn) "Need an account? Create one" else "Have an account? Sign in")
+            }
+        }
+
+        if (state.showSuccessDialog) {
+            Dialog(onDismissRequest = onDismissSuccessDialog) {
+                val palette = ChatTheme.palette
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.md)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.98f)
+                    ),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                palette.bubbleOtherOutline.copy(alpha = 0.8f),
+                                palette.bubbleOtherOutline.copy(alpha = 0.3f),
+                            )
+                        )
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.lg),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Verification Sent! 📧",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = Spacing.md)
+                        )
+
+                        Text(
+                            text = "We've sent a verification link to your email:\n\n${state.email}\n\nPlease check your inbox (and spam folder) and verify your email to activate your account.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = Spacing.lg)
+                        )
+
+                        Button(
+                            onClick = onDismissSuccessDialog,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Back to Sign In",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         }
     }

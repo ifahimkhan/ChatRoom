@@ -44,13 +44,27 @@ class AuthViewModel(
             }
             when (result) {
                 is AppResult.Success -> {
-                    _state.update { it.copy(isLoading = false) }
-                    launch { registerDeviceToken() }
+                    if (current.mode == AuthUiState.Mode.SignUp) {
+                        _state.update { it.copy(isLoading = false, showSuccessDialog = true) }
+                    } else {
+                        _state.update { it.copy(isLoading = false) }
+                        launch { registerDeviceToken() }
+                    }
                 }
                 is AppResult.Failure -> _state.update {
                     it.copy(isLoading = false, errorMessage = result.error.message ?: "Sign-in failed")
                 }
             }
+        }
+    }
+
+    fun dismissSuccessDialog() {
+        _state.update {
+            it.copy(
+                showSuccessDialog = false,
+                mode = AuthUiState.Mode.SignIn,
+                errorMessage = null
+            )
         }
     }
 }
